@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block start %}
+<div class="container mt-5">
+    <div class="container d-flex flex-column align-items-center" style="width: 80%; margin-top: 20px;">
+        <!-- Course Title and Description -->
+        <div class="mb-4 align-self-start">
+            <h1>{{ course.course_name }}</h1>
+            <p>{{ course.description }}</p>
+        </div>
+        
+        <!-- Search Input Group -->
+        <div class="input-group mb-4">
+            <div class="form-outline">
+                <input id="note-search" type="search" class="form-control" placeholder="Search notes..." oninput="searchNotes()">
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+
+        <!-- Notes Header -->
+        <div class="mb-4 align-self-start">
+            <h1>{{ course.short_name }}'s Notes</h1>
+        </div>
+
+        <!-- Notes Display Area -->
+        <div id="notes-container" class="row row-cols-2 row-cols-sm-4 row-cols-md-4 g-3" style="width: 100%;">
+            {% for note in notes %}
+            <div class="col mb-4">
+                <div class="card d-flex flex-column" style="height: 300px;">
+                    <a href="{% url 'note_detail' note.id %}" class="text-decoration-none">
+                        <img src="{{ note.thumbnail_url }}" class="card-img-top" alt="Course Thumbnail" style="cursor: pointer; height: 180px; object-fit: cover;">
+                    </a>
+                    <div class="card-body d-flex flex-column flex-grow-1">
+                        <a href="{% url 'note_detail' note.id %}" class="text-decoration-none">
+                            <h5 class="card-title" style="cursor: pointer;">{{ note.title }}</h5>
+                        </a>
+                        <p class="lead small">Added by {{ note.user.username }}</p>
+                    </div>
+                    <div class="d-flex justify-content-around mt-auto">
+                      <img id="like-icon" src="{% static 'images/like.svg' %}" alt="like" width="24px" height="24px" style="cursor: pointer;" onclick="toggle(this, {{ note.id }})">
+                      <!-- <img src="like_filled.svg" alt="like_filled" width="24px" height="24px" style="cursor: pointer;"> -->
+
+                  <img id="bookmark-icon" src="{% static 'images/bookmark.svg' %}" alt="like" width="24px" height="24px" style="cursor: pointer;" onclick="toggle(this, {{ note.id }})">    
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+                <p>No notes available for this course yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+function toggle(imageElement, noteid) {
+    console.log(noteid)
+    // Get the current image source
+    const currentSrc = imageElement.src;
+
+    // Define the mapping of image sources for toggling
+    const imageToggleMap = {
+        'like.svg': 'like_filled.svg',
+        'like_filled.svg': 'like.svg',
+        'bookmark.svg': 'bookmark_filled.svg',
+        'bookmark_filled.svg': 'bookmark.svg'
+    };
+
+    // Extract the file name from the src attribute
+    const imageName = currentSrc.substring(currentSrc.lastIndexOf('/') + 1);
+
+    // Toggle the src if the image name exists in the map
+    if (imageToggleMap[imageName]) {
+        imageElement.src = currentSrc.replace(imageName, imageToggleMap[imageName]);
+    }
+}
+
+
+function searchNotes() {
+    const query = document.getElementById('note-search').value;
+
+    fetch("{% url 'course_notes' course.course_code %}?query=" + query, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const notesContainer = document.getElementById('notes-container');
+        notesContainer.innerHTML = '';  // Clear existing notes
+
+        if (data.notes.length === 0) {
+            notesContainer.innerHTML = '<p>No notes found.</p>';
+            return;
+        }
+
+        data.notes.forEach(note => {
+            const noteCard = `
+                <div class="col mb-4">
+                    <div class="card d-flex flex-column" style="height: 300px;">
+                        <a href="#" class="text-decoration-none">
+                            <img src="${note.thumbnail_url}" class="card-img-top" alt="Note Thumbnail" style="cursor: pointer; height: 180px; object-fit: cover;">
+                        </a>
+                        <div class="card-body d-flex flex-column flex-grow-1">
+                            <a href="#" class="text-decoration-none">
+                                <h5 class="card-title" style="cursor: pointer;">${note.title}</h5>
+                            </a>
+                            <p class="lead small">Added by ${note.user__username}</p>
+                        </div>
+                        <div class="d-flex justify-content-around mt-auto">
+                      <img id="like-icon" src="{% static 'images/like.svg' %}" alt="like" width="24px" height="24px" style="cursor: pointer;" onclick="toggle(this)">
+                      <!-- <img src="like_filled.svg" alt="like_filled" width="24px" height="24px" style="cursor: pointer;"> -->
+
+                  <img id="bookmark-icon" src="{% static 'images/bookmark.svg' %}" alt="like" width="24px" height="24px" style="cursor: pointer;" onclick="toggle(this)">    
+                    </div>
+                    </div>
+                </div>`;
+            notesContainer.insertAdjacentHTML('beforeend', noteCard);
+        });
+    })
+    .catch(error => console.error('Error:', error));
+}
+</script>
+{% endblock %}
